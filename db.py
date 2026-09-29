@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS submissions (
     llm_reasoning    TEXT,
     stylo_score      REAL,
     stylo_metrics    TEXT,
+    lexicon_score    REAL,
+    lexicon_hits     TEXT,
     flags            TEXT NOT NULL DEFAULT '[]',
     label_variant    TEXT NOT NULL,
     status           TEXT NOT NULL,
@@ -36,6 +38,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
     confidence       REAL NOT NULL,
     llm_score        REAL,
     stylo_score      REAL,
+    lexicon_score    REAL,
     signals_used     TEXT NOT NULL,
     flags            TEXT NOT NULL,
     status           TEXT NOT NULL,
@@ -44,7 +47,14 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 """
 
-JSON_COLUMNS = ("stylo_metrics", "flags", "signals_used")
+JSON_COLUMNS = ("stylo_metrics", "lexicon_hits", "flags", "signals_used")
+
+# Columns added after the first schema; older databases get them via ALTER TABLE.
+MIGRATIONS = {
+    "submissions": [("lexicon_score", "REAL"), ("lexicon_hits", "TEXT")],
+    "audit_log": [("lexicon_score", "REAL")],
+}
+SIGNAL_COLUMNS = (("llm", "llm_score"), ("stylometry", "stylo_score"), ("lexicon", "lexicon_score"))
 
 
 def now_iso():
@@ -68,19 +78,23 @@ def _row_to_dict(row):
 def init_db():
     with _connect() as conn:
         conn.executescript(SCHEMA)
+        for table, columns in MIGRATIONS.items():
+            existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+            for name, col_type in columns:
+                if name not in existing:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {col_type}")
 
 
 def _log_event(conn, event, record):
-    signals_used = [name for name, key in (("llm", "llm_score"), ("stylometry", "stylo_score"))
-                    if record.get(key) is not None]
+    signals_used = [name for name, key in SIGNAL_COLUMNS if record.get(key) is not None]
     conn.execute(
         """INSERT INTO audit_log (timestamp, event, content_id, creator_id, attribution, confidence,
-                                  llm_score, stylo_score, signals_used, flags, status, appeal_id,
-                                  appeal_reasoning)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                  llm_score, stylo_score, lexicon_score, signals_used, flags, status,
+                                  appeal_id, appeal_reasoning)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (now_iso(), event, record["content_id"], record["creator_id"], record["attribution"],
          record["confidence"], record.get("llm_score"), record.get("stylo_score"),
-         json.dumps(signals_used), json.dumps(record.get("flags", [])), record["status"],
+         record.get("lexicon_score"), json.dumps(signals_used), json.dumps(record.get("flags", [])), record["status"],
          record.get("appeal_id"), record.get("appeal_reasoning")),
     )
 
@@ -90,12 +104,13 @@ def save_submission(record):
     with _connect() as conn:
         conn.execute(
             """INSERT INTO submissions (content_id, creator_id, text, attribution, confidence, llm_score,
-                                        llm_reasoning, stylo_score, stylo_metrics, flags, label_variant,
-                                        status, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                        llm_reasoning, stylo_score, stylo_metrics, lexicon_score,
+                                        lexicon_hits, flags, label_variant, status, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (record["content_id"], record["creator_id"], record["text"], record["attribution"],
              record["confidence"], record.get("llm_score"), record.get("llm_reasoning"),
              record.get("stylo_score"), json.dumps(record.get("stylo_metrics")),
+             record.get("lexicon_score"), json.dumps(record.get("lexicon_hits")),
              json.dumps(record.get("flags", [])), record["label_variant"], record["status"],
              record["created_at"]),
         )

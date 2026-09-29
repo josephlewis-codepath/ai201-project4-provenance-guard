@@ -5,7 +5,9 @@ confidence = estimated likelihood the text is AI-generated (0 = human, 1 = AI);
 "AI" label harms a real writer, so it requires much stronger evidence.
 """
 
-WEIGHTS = {"llm": 0.6, "stylometry": 0.4}
+WEIGHTS = {"llm": 0.5, "stylometry": 0.3, "lexicon": 0.2}
+# Used when the LLM is down; the result is still forced to "uncertain".
+FALLBACK_WEIGHTS = {"stylometry": 0.6, "lexicon": 0.4}
 AI_THRESHOLD = 0.75       # confidence >= this -> likely_ai
 HUMAN_THRESHOLD = 0.35    # confidence <= this -> likely_human
 LLM_AI_FLOOR = 0.70       # an AI verdict also needs the LLM itself to lean AI
@@ -21,15 +23,18 @@ def attribution_for(confidence):
     return "uncertain"
 
 
-def combine(llm_score, stylo_score, word_count):
+def combine(llm_score, stylo_score, lexicon_score, word_count):
     """Return {"confidence", "attribution", "flags"}; override rules follow planning.md order."""
     flags = []
     if llm_score is None:
         # Never accuse on heuristics alone.
-        return {"confidence": round(stylo_score, 3), "attribution": "uncertain",
+        confidence = (FALLBACK_WEIGHTS["stylometry"] * stylo_score
+                      + FALLBACK_WEIGHTS["lexicon"] * lexicon_score)
+        return {"confidence": round(confidence, 3), "attribution": "uncertain",
                 "flags": ["llm_unavailable"]}
 
-    confidence = WEIGHTS["llm"] * llm_score + WEIGHTS["stylometry"] * stylo_score
+    confidence = (WEIGHTS["llm"] * llm_score + WEIGHTS["stylometry"] * stylo_score
+                  + WEIGHTS["lexicon"] * lexicon_score)
     if word_count < MIN_WORDS:
         flags.append("short_text")
     if abs(llm_score - stylo_score) > DISAGREEMENT_LIMIT:
@@ -37,7 +42,7 @@ def combine(llm_score, stylo_score, word_count):
 
     attribution = "uncertain" if flags else attribution_for(confidence)
     if attribution == "likely_ai" and llm_score < LLM_AI_FLOOR:
-        # Stylometry can support an AI verdict but never produce one on its own.
+        # The heuristic signals can support an AI verdict but never produce one on their own.
         attribution = "uncertain"
         flags.append("weak_llm_evidence")
     return {"confidence": round(confidence, 3), "attribution": attribution, "flags": flags}

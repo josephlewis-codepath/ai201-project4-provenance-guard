@@ -52,3 +52,11 @@ TEST_INPUTS["clear_ai_long"] = (
     "mastering time management is a valuable skill that empowers individuals to achieve a healthier "
     "work-life balance and reach their full potential."
 )
+
+# Lexicon blind spot: a real human's corporate email uses the same stock vocabulary.
+TEST_INPUTS["edge_corporate_human"] = (
+    "Hi team — quick update before Thursday's sync. We need to leverage the Q3 numbers to get the "
+    "stakeholders aligned, and frankly the landscape has shifted since Dana's deck. Additionally, "
+    "legal still hasn't signed off on the vendor contract (third time I've asked!). Ultimately "
+    "it's Priya's call, but I'd push the launch two weeks. Thoughts? - Mark"
+)

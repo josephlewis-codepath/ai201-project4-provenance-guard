@@ -9,6 +9,7 @@ from flask_limiter.util import get_remote_address
 import db
 from labels import make_label
 from scoring import combine
+from signals.lexicon import lexicon_signal
 from signals.llm import llm_signal
 from signals.stylometry import stylometric_signal
 
@@ -54,6 +55,7 @@ def _public_view(sub):
         "signals": {
             "llm": {"score": sub["llm_score"], "reasoning": sub["llm_reasoning"]},
             "stylometry": {"score": sub["stylo_score"], "metrics": sub["stylo_metrics"]},
+            "lexicon": {"score": sub["lexicon_score"], "hits": sub["lexicon_hits"]},
         },
         "flags": sub["flags"],
         "label": make_label(sub["attribution"], sub["status"]),
@@ -80,7 +82,8 @@ def submit():
 
     llm = llm_signal(text)
     stylo = stylometric_signal(text)
-    result = combine(llm["score"], stylo["score"], stylo["word_count"])
+    lexicon = lexicon_signal(text)
+    result = combine(llm["score"], stylo["score"], lexicon["score"], stylo["word_count"])
     attribution = result["attribution"]
     label = make_label(attribution)
 
@@ -94,6 +97,8 @@ def submit():
         "llm_reasoning": llm["reasoning"],
         "stylo_score": stylo["score"],
         "stylo_metrics": stylo["metrics"],
+        "lexicon_score": lexicon["score"],
+        "lexicon_hits": lexicon["hits"],
         "flags": result["flags"],
         "label_variant": label["variant"],
         "status": "classified",
@@ -110,6 +115,8 @@ def submit():
             "llm": {"score": llm["score"], "reasoning": llm["reasoning"]},
             "stylometry": {"score": stylo["score"], "metrics": stylo["metrics"],
                            "subscores": stylo["subscores"]},
+            "lexicon": {"score": lexicon["score"], "hits": lexicon["hits"],
+                        "hits_per_100_words": lexicon["hits_per_100_words"]},
         },
         "flags": record["flags"],
         "label": label,
