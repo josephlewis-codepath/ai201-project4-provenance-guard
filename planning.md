@@ -355,11 +355,46 @@ Example `audit_log` entry:
 
 ## Stretch Features
 
-*To be planned here before starting any of them.*
+Planned after M5 and before any stretch code was written.
 
-Candidates:
-- **Ensemble:** a third signal, a lexicon of phrases AI text overuses, with documented weights.
-- **Analytics dashboard:** label distribution, appeal rate, and average signal disagreement.
+### S1 — Ensemble detection (three signals, weighted)
+
+**Signal 3 — AI-phrase lexicon** (`signals/lexicon.py`, pure Python)
+- **What it measures:** How densely the text uses words and phrases that assistant-style LLM output overuses. The list is fixed and curated (about 40 entries), for example:
+  - hedges and transitions: "it is important to note", "furthermore", "moreover", "additionally", "ultimately", "in conclusion"
+  - stock vocabulary: "delve", "tapestry", "realm", "landscape", "paradigm", "leverage", "stakeholders", "foster", "empower", "seamless", "robust", "crucial", "plays a vital role", "in today's fast-paced"
+
+  Matching is case-insensitive on whole words.
+- **Why it's distinct:** Stylometry measures structure (length, rhythm, punctuation) and the LLM makes a holistic judgment. The lexicon measures specific word *choice*, which is transparent, explainable, and independent of sentence shape. A reviewer can see exactly which phrases fired.
+- **Output:**
+  ```json
+  { "score": 0.0-1.0, "hits": ["furthermore", "it is important to note"], "hits_per_100_words": 4.6 }
+  ```
+  `score = clamp(hits_per_100_words / 3.0)`, so 3 or more stock phrases per 100 words gives 1.0 and none gives 0.0.
+- **Blind spots:** It is trivially evaded by paraphrasing or by asking the model to avoid those words. Human business, academic, and corporate writing uses "furthermore" and "stakeholders" legitimately. The list goes stale as model habits shift.
+
+**Ensemble weighting (replaces the two-signal formula):**
+```
+combined = 0.5 · llm + 0.3 · stylometry + 0.2 · lexicon
+```
+The LLM keeps the largest share as the richest signal. Stylometry stays second. The lexicon gets the least weight because it is the easiest to game and the most prone to false positives on formal human prose.
+
+**Rules stay the same:** the thresholds (0.75 / 0.35), the 30-word rule, the LLM floor (0.70), and the disagreement rule (`|llm − stylometry| > 0.45`) carry over unchanged. The LLM floor matters even more now: two heuristic signals together can't produce an AI verdict. If the LLM is unavailable, `combined = 0.6 · stylometry + 0.4 · lexicon`, still forced to `uncertain`.
+
+**Storage:** `lexicon_score` and `lexicon_hits` are added to `submissions`, and `lexicon_score` to `audit_log`. `signals_used` includes `"lexicon"`. Existing databases are migrated with `ALTER TABLE ADD COLUMN`.
+
+**Verification:** Re-run `scripts/calibrate.py` with a lexicon column and confirm:
+- the AI samples stay ≥ 0.75
+- the human sample stays ≤ 0.35
+- the formal human paragraph and the edge cases stay `uncertain`
+
+### S2 — Analytics dashboard
+
+- **`GET /stats`** (JSON) and **`GET /dashboard`** (a server-rendered HTML page with no JavaScript, reading the same numbers).
+- **Detection patterns:** the count and share of each attribution (`likely_ai` / `uncertain` / `likely_human`), a histogram of confidence scores in bands (0–0.35, 0.35–0.5, 0.5–0.75, 0.75–1), and how often each flag fires.
+- **Appeal rate:** overall (appealed ÷ submissions) and **per attribution**. A high appeal rate on `likely_ai` would be the first warning sign of false positives.
+- **Additional metric — signal agreement:** the mean `|llm − stylometry|` and the share of submissions flagged `signal_disagreement`. Rising disagreement means the signals are drifting apart and the thresholds need recalibration.
+- **Verification:** seed a fresh database with the test inputs plus one appeal, then hand-check the counts, the rates, and the mean disagreement against `/log`.
 
 ---
 
