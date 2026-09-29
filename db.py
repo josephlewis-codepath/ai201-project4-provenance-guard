@@ -156,3 +156,52 @@ def get_appeal_queue():
         rows = conn.execute(
             "SELECT * FROM submissions WHERE status = 'under_review' ORDER BY appealed_at ASC").fetchall()
     return [_row_to_dict(r) for r in rows]
+
+
+# Band edges follow the scoring thresholds: <= 0.35 is the human band, >= 0.75 the AI band.
+CONFIDENCE_BANDS = [("0.00–0.35", lambda c: c <= 0.35), ("0.35–0.50", lambda c: 0.35 < c < 0.50),
+                    ("0.50–0.75", lambda c: 0.50 <= c < 0.75), ("0.75–1.00", lambda c: c >= 0.75)]
+ATTRIBUTIONS = ("likely_ai", "uncertain", "likely_human")
+
+
+def _rate(part, whole):
+    return round(part / whole, 3) if whole else 0.0
+
+
+def get_stats():
+    """Aggregate detection patterns, appeal rates, and signal agreement for the dashboard."""
+    with _connect() as conn:
+        rows = [_row_to_dict(r) for r in conn.execute(
+            "SELECT attribution, confidence, llm_score, stylo_score, flags, appeal_id FROM submissions")]
+
+    total = len(rows)
+    appealed = [r for r in rows if r["appeal_id"]]
+
+    by_attribution = {}
+    for a in ATTRIBUTIONS:
+        group = [r for r in rows if r["attribution"] == a]
+        n_appealed = sum(1 for r in group if r["appeal_id"])
+        by_attribution[a] = {"count": len(group), "share": _rate(len(group), total),
+                             "appealed": n_appealed, "appeal_rate": _rate(n_appealed, len(group))}
+
+    histogram = [{"band": name, "count": sum(1 for r in rows if in_band(r["confidence"]))}
+                 for name, in_band in CONFIDENCE_BANDS]
+
+    flag_counts = {}
+    for r in rows:
+        for f in r["flags"]:
+            flag_counts[f] = flag_counts.get(f, 0) + 1
+
+    gaps = [abs(r["llm_score"] - r["stylo_score"]) for r in rows
+            if r["llm_score"] is not None and r["stylo_score"] is not None]
+
+    return {
+        "total_submissions": total,
+        "detection": {"by_attribution": by_attribution, "confidence_histogram": histogram,
+                      "flag_counts": flag_counts},
+        "appeals": {"total": len(appealed), "appeal_rate": _rate(len(appealed), total)},
+        "signal_agreement": {
+            "mean_llm_stylometry_gap": round(sum(gaps) / len(gaps), 3) if gaps else None,
+            "disagreement_flag_rate": _rate(flag_counts.get("signal_disagreement", 0), total),
+        },
+    }

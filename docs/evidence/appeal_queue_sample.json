@@ -1,0 +1,84 @@
+{
+    "appeals": [
+        {
+            "appeal_id": "3fb51c26-db60-4657-a878-b1ecd102a0be",
+            "appeal_reasoning": "I drafted this for a policy class; it's formal because the assignment required it.",
+            "appealed_at": "2026-09-29T21:48:18.727Z",
+            "attribution": "likely_ai",
+            "confidence": 0.86,
+            "content_id": "19efaff6-ed6b-41ab-9d6e-9601a93794fd",
+            "creator_id": "writer-clear_ai",
+            "flags": [],
+            "label": {
+                "text": "Our analysis found strong, consistent signs that this text was generated with AI tools. Automated detection isn't perfect — the creator can appeal this label, and appealed work is reviewed by a person. The creator has appealed this result; it is under review.",
+                "title": "🤖 Likely AI-generated",
+                "variant": "ai"
+            },
+            "signals": {
+                "lexicon": {
+                    "hits": [
+                        "it is important to note",
+                        "it is equally essential",
+                        "furthermore",
+                        "paradigm",
+                        "transformative",
+                        "stakeholders"
+                    ],
+                    "score": 1.0
+                },
+                "llm": {
+                    "reasoning": "The passage is highly formal, uses generic filler phrases and balanced but empty structure without personal detail, typical of AI-generated text.",
+                    "score": 0.86
+                },
+                "stylometry": {
+                    "metrics": {
+                        "avg_word_length": 6.23,
+                        "informality_rate": 0.023,
+                        "sentence_length_cv": 0.379
+                    },
+                    "score": 0.768
+                }
+            },
+            "status": "under_review",
+            "text": "Artificial intelligence represents a transformative paradigm shift in modern society. It is important to note that while the benefits of AI are numerous, it is equally essential to consider the ethical implications. Furthermore, stakeholders across various sectors must collaborate to ensure responsible deployment.",
+            "timestamp": "2026-09-29T21:48:10.008Z"
+        },
+        {
+            "appeal_id": "4383758b-1fa8-4d30-b733-e3786c31c3fc",
+            "appeal_reasoning": "I wrote this myself from personal experience. I am a non-native English speaker.",
+            "appealed_at": "2026-09-29T21:48:18.731Z",
+            "attribution": "uncertain",
+            "confidence": 0.373,
+            "content_id": "942a2ace-7282-4869-a6e9-75e9e2ffc213",
+            "creator_id": "writer-edge_non_native_formal",
+            "flags": [],
+            "label": {
+                "text": "We couldn't confidently tell whether this text was written by a person or with AI assistance. This is not an accusation — many human writers get this result. Consider the creator's own description of their work. The creator has appealed this result; it is under review.",
+                "title": "❔ Origin unclear",
+                "variant": "uncertain"
+            },
+            "signals": {
+                "lexicon": {
+                    "hits": [],
+                    "score": 0.0
+                },
+                "llm": {
+                    "reasoning": "The passage contains personal details and a natural narrative flow, lacking the generic filler or overly polished structure typical of AI, suggesting it is more likely human-written.",
+                    "score": 0.35
+                },
+                "stylometry": {
+                    "metrics": {
+                        "avg_word_length": 4.19,
+                        "informality_rate": 0.0,
+                        "sentence_length_cv": 0.322
+                    },
+                    "score": 0.661
+                }
+            },
+            "status": "under_review",
+            "text": "I arrived to this city three years ago for my studies. In the beginning, the life here was very difficult for me because I did not understand the customs of the people. The weather was also very cold compared to my country. However, I have made many good friends and now I feel this place is my second home. I am grateful for every experience I have received here.",
+            "timestamp": "2026-09-29T21:48:17.277Z"
+        }
+    ],
+    "count": 2
+}

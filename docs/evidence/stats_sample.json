@@ -1,0 +1,54 @@
+{
+    "appeals": {
+        "appeal_rate": 0.222,
+        "total": 2
+    },
+    "detection": {
+        "by_attribution": {
+            "likely_ai": {
+                "appeal_rate": 0.5,
+                "appealed": 1,
+                "count": 2,
+                "share": 0.222
+            },
+            "likely_human": {
+                "appeal_rate": 0.0,
+                "appealed": 0,
+                "count": 2,
+                "share": 0.222
+            },
+            "uncertain": {
+                "appeal_rate": 0.2,
+                "appealed": 1,
+                "count": 5,
+                "share": 0.556
+            }
+        },
+        "confidence_histogram": [
+            {
+                "band": "0.00–0.35",
+                "count": 3
+            },
+            {
+                "band": "0.35–0.50",
+                "count": 3
+            },
+            {
+                "band": "0.50–0.75",
+                "count": 1
+            },
+            {
+                "band": "0.75–1.00",
+                "count": 2
+            }
+        ],
+        "flag_counts": {
+            "short_text": 1
+        }
+    },
+    "signal_agreement": {
+        "disagreement_flag_rate": 0.0,
+        "mean_llm_stylometry_gap": 0.196
+    },
+    "total_submissions": 9
+}

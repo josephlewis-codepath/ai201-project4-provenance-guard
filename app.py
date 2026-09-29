@@ -2,7 +2,7 @@
 import os
 import uuid
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -175,6 +175,16 @@ def appeals():
     """Human reviewer queue: original decision, both signals, and the creator's reasoning."""
     queue = [{**_public_view(sub), "text": sub["text"]} for sub in db.get_appeal_queue()]
     return jsonify({"count": len(queue), "appeals": queue})
+
+
+@app.route("/stats", methods=["GET"])
+def stats():
+    return jsonify(db.get_stats())
+
+
+@app.route("/dashboard", methods=["GET"])
+def dashboard():
+    return render_template("dashboard.html", s=db.get_stats())
 
 
 @app.route("/log", methods=["GET"])

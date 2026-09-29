@@ -1,99 +1,132 @@
 {
     "entries": [
         {
-            "appeal_id": "7b4cba6f-eb66-4326-8d94-70596bb7690c",
-            "appeal_reasoning": "I wrote this myself from personal experience. I am a non-native English speaker and my writing style may appear more formal than typical.",
-            "attribution": "uncertain",
-            "confidence": 0.534,
-            "content_id": "93d5f85c-fe60-4a8e-82c1-f2b30e34ffb8",
-            "creator_id": "writer-intl",
-            "event": "appeal_filed",
-            "flags": [],
-            "id": 5,
-            "llm_score": 0.45,
-            "signals_used": [
-                "llm",
-                "stylometry"
-            ],
-            "status": "under_review",
-            "stylo_score": 0.661,
-            "timestamp": "2026-09-29T21:43:38.607Z"
-        },
-        {
             "appeal_id": null,
             "appeal_reasoning": null,
             "attribution": "uncertain",
-            "confidence": 0.534,
-            "content_id": "93d5f85c-fe60-4a8e-82c1-f2b30e34ffb8",
-            "creator_id": "writer-intl",
+            "confidence": 0.314,
+            "content_id": "ded3b1a8-3945-4a15-b8b1-22bfc20ede89",
+            "creator_id": "writer-haiku",
             "event": "classified",
-            "flags": [],
-            "id": 4,
-            "llm_score": 0.45,
-            "signals_used": [
-                "llm",
-                "stylometry"
+            "flags": [
+                "short_text"
             ],
-            "status": "classified",
-            "stylo_score": 0.661,
-            "timestamp": "2026-09-29T21:43:38.601Z"
-        },
-        {
-            "appeal_id": null,
-            "appeal_reasoning": null,
-            "attribution": "uncertain",
-            "confidence": 0.548,
-            "content_id": "d1d65e24-5e23-47ea-bb66-2b0326a164d7",
-            "creator_id": "writer-remote",
-            "event": "classified",
-            "flags": [],
-            "id": 3,
+            "id": 11,
+            "lexicon_score": 0.0,
             "llm_score": 0.55,
             "signals_used": [
                 "llm",
-                "stylometry"
+                "stylometry",
+                "lexicon"
             ],
             "status": "classified",
-            "stylo_score": 0.546,
-            "timestamp": "2026-09-29T21:43:37.830Z"
+            "stylo_score": 0.129,
+            "timestamp": "2026-09-29T21:48:30.186Z"
+        },
+        {
+            "appeal_id": "4383758b-1fa8-4d30-b733-e3786c31c3fc",
+            "appeal_reasoning": "I wrote this myself from personal experience. I am a non-native English speaker.",
+            "attribution": "uncertain",
+            "confidence": 0.373,
+            "content_id": "942a2ace-7282-4869-a6e9-75e9e2ffc213",
+            "creator_id": "writer-edge_non_native_formal",
+            "event": "appeal_filed",
+            "flags": [],
+            "id": 10,
+            "lexicon_score": 0.0,
+            "llm_score": 0.35,
+            "signals_used": [
+                "llm",
+                "stylometry",
+                "lexicon"
+            ],
+            "status": "under_review",
+            "stylo_score": 0.661,
+            "timestamp": "2026-09-29T21:48:18.732Z"
+        },
+        {
+            "appeal_id": "3fb51c26-db60-4657-a878-b1ecd102a0be",
+            "appeal_reasoning": "I drafted this for a policy class; it's formal because the assignment required it.",
+            "attribution": "likely_ai",
+            "confidence": 0.86,
+            "content_id": "19efaff6-ed6b-41ab-9d6e-9601a93794fd",
+            "creator_id": "writer-clear_ai",
+            "event": "appeal_filed",
+            "flags": [],
+            "id": 9,
+            "lexicon_score": 1.0,
+            "llm_score": 0.86,
+            "signals_used": [
+                "llm",
+                "stylometry",
+                "lexicon"
+            ],
+            "status": "under_review",
+            "stylo_score": 0.768,
+            "timestamp": "2026-09-29T21:48:18.727Z"
         },
         {
             "appeal_id": null,
             "appeal_reasoning": null,
             "attribution": "likely_human",
-            "confidence": 0.165,
-            "content_id": "1cc12834-b818-45f7-ae09-059b6064c91a",
-            "creator_id": "writer-ramen",
+            "confidence": 0.313,
+            "content_id": "12fb818f-f3d8-4afb-98f7-8b110eee294e",
+            "creator_id": "writer-edge_corporate_human",
             "event": "classified",
             "flags": [],
-            "id": 2,
-            "llm_score": 0.2,
+            "id": 8,
+            "lexicon_score": 1.0,
+            "llm_score": 0.15,
             "signals_used": [
                 "llm",
-                "stylometry"
+                "stylometry",
+                "lexicon"
             ],
             "status": "classified",
-            "stylo_score": 0.112,
-            "timestamp": "2026-09-29T21:43:36.937Z"
+            "stylo_score": 0.128,
+            "timestamp": "2026-09-29T21:48:18.722Z"
         },
         {
             "appeal_id": null,
             "appeal_reasoning": null,
             "attribution": "likely_ai",
-            "confidence": 0.817,
-            "content_id": "ffea1220-bb30-4094-813d-e69698687c17",
-            "creator_id": "writer-ai-sample",
+            "confidence": 0.891,
+            "content_id": "4b8a4505-f1c1-40b2-8e61-93a7d06b335e",
+            "creator_id": "writer-clear_ai_long",
             "event": "classified",
             "flags": [],
-            "id": 1,
-            "llm_score": 0.85,
+            "id": 7,
+            "lexicon_score": 1.0,
+            "llm_score": 0.82,
             "signals_used": [
                 "llm",
-                "stylometry"
+                "stylometry",
+                "lexicon"
             ],
             "status": "classified",
-            "stylo_score": 0.768,
-            "timestamp": "2026-09-29T21:43:34.893Z"
+            "stylo_score": 0.937,
+            "timestamp": "2026-09-29T21:48:17.908Z"
+        },
+        {
+            "appeal_id": null,
+            "appeal_reasoning": null,
+            "attribution": "uncertain",
+            "confidence": 0.373,
+            "content_id": "942a2ace-7282-4869-a6e9-75e9e2ffc213",
+            "creator_id": "writer-edge_non_native_formal",
+            "event": "classified",
+            "flags": [],
+            "id": 6,
+            "lexicon_score": 0.0,
+            "llm_score": 0.35,
+            "signals_used": [
+                "llm",
+                "stylometry",
+                "lexicon"
+            ],
+            "status": "classified",
+            "stylo_score": 0.661,
+            "timestamp": "2026-09-29T21:48:17.278Z"
         }
     ]
 }

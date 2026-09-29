@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Provenance Guard Dashboard</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --border: #e3e3e0;
+    --ai: #c2410c; --uncertain: #a16207; --human: #15803d; --bar: #4f46e5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141416; --card: #1d1d20; --text: #ececee; --muted: #9a9aa2; --border: #2e2e33;
+      --ai: #fb923c; --uncertain: #facc15; --human: #4ade80; --bar: #818cf8;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 32px 16px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0 0 12px; color: var(--muted); font-weight: 600;
+       text-transform: uppercase; letter-spacing: .04em; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .kpi { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .kpi-label { color: var(--muted); font-size: 13px; }
+  .row { display: grid; grid-template-columns: 96px 1fr 36px; gap: 10px; align-items: center; margin: 8px 0; }
+  .track { background: var(--border); border-radius: 4px; height: 10px; overflow: hidden; }
+  .fill { height: 100%; border-radius: 4px; background: var(--bar); }
+  .fill.likely_ai { background: var(--ai); } .fill.uncertain { background: var(--uncertain); }
+  .fill.likely_human { background: var(--human); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .note { color: var(--muted); font-size: 13px; margin-top: 12px; }
+  .full { grid-column: 1 / -1; }
+  @media (min-width: 720px) { .wide { grid-column: span 2; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Provenance Guard</h1>
+  <p class="sub">Detection patterns, appeals, and signal health. Also available as JSON at <code>/stats</code>.</p>
+
+  <div class="grid">
+    <div class="card"><div class="kpi">{{ s.total_submissions }}</div><div class="kpi-label">submissions classified</div></div>
+    <div class="card"><div class="kpi">{{ "%.0f" % (s.appeals.appeal_rate * 100) }}%</div>
+      <div class="kpi-label">appeal rate ({{ s.appeals.total }} appeal{{ "" if s.appeals.total == 1 else "s" }})</div></div>
+    <div class="card"><div class="kpi">{{ "—" if s.signal_agreement.mean_llm_stylometry_gap is none else "%.2f" % s.signal_agreement.mean_llm_stylometry_gap }}</div>
+      <div class="kpi-label">mean LLM–stylometry gap (0 = signals agree)</div></div>
+
+    <div class="card full">
+      <h2>Attribution breakdown &amp; appeal rate by verdict</h2>
+      <table>
+        <tr><th>Verdict</th><th class="n">Count</th><th class="n">Share</th><th class="n">Appealed</th><th class="n">Appeal rate</th></tr>
+        {% for key, name in [("likely_ai", "Likely AI"), ("uncertain", "Uncertain"), ("likely_human", "Likely human")] %}
+        {% set a = s.detection.by_attribution[key] %}
+        <tr><td>{{ name }}</td><td class="n">{{ a.count }}</td><td class="n">{{ "%.0f" % (a.share * 100) }}%</td>
+            <td class="n">{{ a.appealed }}</td><td class="n">{{ "%.0f" % (a.appeal_rate * 100) }}%</td></tr>
+        {% endfor %}
+      </table>
+      {% for key, name in [("likely_ai", "Likely AI"), ("uncertain", "Uncertain"), ("likely_human", "Likely human")] %}
+      {% set a = s.detection.by_attribution[key] %}
+      <div class="row"><span>{{ name }}</span><div class="track"><div class="fill {{ key }}" style="width: {{ a.share * 100 }}%"></div></div><span class="num">{{ a.count }}</span></div>
+      {% endfor %}
+      <p class="note">A rising appeal rate on "Likely AI" is the earliest sign of false positives against human writers.</p>
+    </div>
+
+    <div class="card wide">
+      <h2>Confidence distribution</h2>
+      {% set max_band = s.detection.confidence_histogram | map(attribute="count") | max %}
+      {% for b in s.detection.confidence_histogram %}
+      <div class="row"><span>{{ b.band }}</span><div class="track"><div class="fill" style="width: {{ (b.count / max_band * 100) if max_band else 0 }}%"></div></div><span class="num">{{ b.count }}</span></div>
+      {% endfor %}
+      <p class="note">≤ 0.35 human · 0.35–0.75 uncertain · ≥ 0.75 AI (with LLM ≥ 0.70)</p>
+    </div>
+
+    <div class="card">
+      <h2>Why results were held at "uncertain"</h2>
+      {% if s.detection.flag_counts %}
+      <table>
+        {% for flag, n in s.detection.flag_counts | dictsort %}
+        <tr><td><code>{{ flag }}</code></td><td class="n">{{ n }}</td></tr>
+        {% endfor %}
+      </table>
+      {% else %}<p class="note">No override flags fired yet.</p>{% endif %}
+      <p class="note">Disagreement flag rate: {{ "%.0f" % (s.signal_agreement.disagreement_flag_rate * 100) }}% of submissions.</p>
+    </div>
+  </div>
+</main>
+</body>
+</html>
