@@ -357,4 +357,5 @@ Candidates:
 
 ## Change Log
 
-- *(Record spec changes made during implementation here, with the reason. This feeds the README's spec reflection.)*
+- **M3 — LLM model swap.** `meta-llama/llama-4-scout-17b-16e-instruct` returned `NotFoundError`: Groq has retired it. Switched to `openai/gpt-oss-120b`, the strongest general model still available on the account. It is overridable with the `GROQ_MODEL` env var. Standalone results on the four test inputs: clear AI 0.85, clear human 0.15, and both borderline cases 0.55, so the signal already separates the two ends and hedges in the middle as the prompt asks.
+- **M3 — Port.** The dev server defaults to port **5001** (overridable with `PORT`), because macOS's AirPlay Receiver occupies 5000 and answers with a `403 AirTunes` response.
