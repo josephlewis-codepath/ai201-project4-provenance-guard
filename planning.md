@@ -190,7 +190,7 @@ The starting constants above are **initial values to be calibrated in M4** again
 `confidence` is the system's estimate of **how likely the text is AI-generated**, from 0 to 1:
 - **0.5 means "the evidence is balanced — we genuinely don't know."**
 - **0.6 means "a slight lean toward AI, not enough to say so."** A 0.6 always produces the *uncertain* label.
-- Only scores at or above **0.80** ("strong, consistent evidence") earn the AI label.
+- Only scores at or above **0.75** ("strong, consistent evidence"), with the LLM itself leaning AI, earn the AI label.
 
 ### Combination
 
@@ -202,23 +202,24 @@ The LLM gets more weight because it uses far more information. Stylometry keeps 
 ### Override rules (applied in order)
 
 1. **LLM unavailable:** `combined = stylo_score`, and the attribution is forced to `uncertain`. We never accuse someone based on heuristics alone.
-2. **Short text** (< 50 words): the attribution is forced to `uncertain` and the `short_text` flag is set. There is too little text to judge.
+2. **Short text** (< 30 words): the attribution is forced to `uncertain` and the `short_text` flag is set. There is too little text to judge.
 3. **Signal disagreement** (`|llm_score − stylo_score| > 0.45`): the attribution is forced to `uncertain` and the `signal_disagreement` flag is set.
 4. Otherwise, apply the thresholds below.
+5. **LLM floor for AI verdicts:** if the thresholds give `likely_ai` but `llm_score < 0.70`, the attribution becomes `uncertain` and the `weak_llm_evidence` flag is set. Stylometry can support an AI verdict but can never produce one on its own.
 
 ### Thresholds (deliberately lopsided)
 
 | Combined score | Attribution | Label variant |
 |---|---|---|
-| **≥ 0.80** | `likely_ai` | High-confidence AI |
-| **0.36 – 0.79** | `uncertain` | Uncertain |
+| **≥ 0.75** (and llm ≥ 0.70) | `likely_ai` | High-confidence AI |
+| **0.36 – 0.74** | `uncertain` | Uncertain |
 | **≤ 0.35** | `likely_human` | High-confidence human |
 
-**Why lopsided:** The AI band requires a score 0.30 above the midpoint, while the human band needs only 0.15 below it. A false "AI" label can damage a real writer's reputation. A false "human" label is a less harmful miss, and it can still be corrected through reports and review. Most of the scale deliberately lands in "uncertain."
+**Why lopsided:** The AI band requires a score 0.25 above the midpoint, plus the LLM floor, while the human band needs only 0.15 below it. A false "AI" label can damage a real writer's reputation. A false "human" label is a less harmful miss, and it can still be corrected through reports and review. Most of the scale deliberately lands in "uncertain."
 
 ### Validation plan (M4)
 Run `scripts/calibrate.py` over the four provided test inputs plus at least two of my own (a repetitive poem and a non-native formal paragraph). Print both signals and the combined score for each. The system passes when:
-- The clearly AI text reaches ≥ 0.80.
+- The clearly AI text reaches ≥ 0.75.
 - The clearly human text reaches ≤ 0.35.
 - The borderline cases land in the uncertain band, or are explained.
 - All three label variants are reachable.
@@ -266,7 +267,7 @@ When a submission is under appeal, the label text gets one more line: *"The crea
 ## Anticipated Edge Cases
 
 1. **A repetitive, simple-vocabulary poem.** For example, a villanelle or a children's poem with refrains ("I will not go / I will not go"). Repeated lines of equal length give very low burstiness, and there is little informal punctuation, so stylometry leans AI. The LLM may recognize it as deliberate poetic form. *Mitigation:* the disagreement rule sends it to **uncertain**, not AI.
-2. **A non-native English speaker's formal prose.** Careful, textbook-style grammar with few contractions and uniform sentences. Both signals may lean AI, which is the worst-case false positive. *Mitigation:* the high 0.80 bar, the uncertain label's wording ("many human writers get this result"), and the appeal path. This is the scenario the appeal test uses.
+2. **A non-native English speaker's formal prose.** Careful, textbook-style grammar with few contractions and uniform sentences. Both signals may lean AI, which is the worst-case false positive. *Mitigation:* the high 0.75 bar and the LLM floor, the uncertain label's wording ("many human writers get this result"), and the appeal path. This is the scenario the appeal test uses.
 3. **Lightly edited AI output.** AI text with a few added contractions and a personal opener ("I've been thinking a lot about…"). The informality score drops and the LLM may be fooled. It likely lands in **uncertain**, which is the honest answer.
 4. **Very short text** (a haiku, a one-line caption). Too few sentences for meaningful statistics. *Mitigation:* the under-50-words rule forces **uncertain**.
 5. **Lists, code, or dialogue-heavy text.** Splitting on sentence punctuation behaves strangely (bullet lists have no periods, and dialogue has many short fragments). This is documented as a known limitation.
@@ -330,7 +331,7 @@ Example `audit_log` entry:
 - **Provide:** Detection Signals (both signals and their exact normalization formulas), Confidence Scoring & Uncertainty (weights, override rules, thresholds), and the diagram.
 - **Ask for:** `signals/stylometry.py` with `stylometric_signal(text)`, `scoring.py` with `combine(...)`, and `scripts/calibrate.py`.
 - **Verify:**
-  - Read the generated scoring code line by line against the threshold table (0.80 / 0.35), the 0.45 disagreement rule, the 50-word rule, and the 0.6 / 0.4 weights. AI tools often quietly substitute symmetric 0.5 cutoffs.
+  - Read the generated scoring code line by line against the threshold table (0.75 / 0.35), the 0.70 LLM floor, the 0.45 disagreement rule, the 30-word rule, and the 0.6 / 0.4 weights. AI tools often quietly substitute symmetric 0.5 cutoffs.
   - Run the calibration script on the six inputs. Check that the AI and human texts are far apart, and that each signal on its own behaves sensibly.
   - Confirm the audit log now stores both signal scores.
 
@@ -359,3 +360,19 @@ Candidates:
 
 - **M3 — LLM model swap.** `meta-llama/llama-4-scout-17b-16e-instruct` returned `NotFoundError`: Groq has retired it. Switched to `openai/gpt-oss-120b`, the strongest general model still available on the account. It is overridable with the `GROQ_MODEL` env var. Standalone results on the four test inputs: clear AI 0.85, clear human 0.15, and both borderline cases 0.55, so the signal already separates the two ends and hedges in the middle as the prompt asks.
 - **M3 — Port.** The dev server defaults to port **5001** (overridable with `PORT`), because macOS's AirPlay Receiver occupies 5000 and answers with a `403 AirTunes` response.
+- **M4 — Calibration changes** (made after running `scripts/calibrate.py`; the original values are listed for the record):
+
+  | input | words | llm | stylo | combined | attribution |
+  |---|---|---|---|---|---|
+  | clear_ai | 43 | 0.86 | 0.77 | 0.823 | likely_ai |
+  | clear_ai_long | 69 | 0.82 | 0.94 | 0.867 | likely_ai |
+  | clear_human | 55 | 0.15 | 0.11 | 0.135 | likely_human |
+  | borderline_formal_human | 43 | 0.55 | 0.96 | 0.714 | uncertain |
+  | borderline_edited_ai | 39 | 0.55 | 0.55 | 0.548 | uncertain |
+  | edge_repetitive_poem | 56 | 0.35 | 0.75 | 0.510 | uncertain |
+  | edge_non_native_formal | 69 | 0.60 | 0.66 | 0.624 | uncertain |
+
+  - *Short-text cutoff 50 → 30 words.* Three of the four provided test inputs are 39–43 words, so at 50 nothing on a paragraph-length post could ever get a definite label. 30 still catches haiku and captions.
+  - *AI threshold 0.80 → 0.75.* Repeated runs showed the LLM varies by about ±0.02 even at temperature 0 (clear_ai scored 0.82–0.86). That put the clear AI sample at 0.799–0.823, right on the 0.80 line, so the same text flip-flopped between labels. A threshold should not sit inside the noise band of the canonical example. The asymmetry is kept: 0.25 above the midpoint vs. 0.15 below.
+  - *New LLM floor rule (llm ≥ 0.70 for an AI verdict).* With the lower bar, the formal human paragraph (0.714, driven by stylometry's 0.96) would sit only 0.04 from an AI label. Stylometry's blind spot for formal prose is exactly what the spec predicted, so it may support an AI verdict but not produce one.
+  - *Stylometry confirmed its blind spots:* formal human prose 0.96, repetitive poem 0.75, and the non-native writer 0.66 are all AI-leaning. In every case the LLM, the disagreement rule, or the LLM floor kept them at `uncertain`.

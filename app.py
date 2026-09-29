@@ -5,7 +5,9 @@ import uuid
 from flask import Flask, jsonify, request
 
 import db
+from scoring import combine
 from signals.llm import llm_signal
+from signals.stylometry import stylometric_signal
 
 MAX_TEXT_CHARS = 10_000
 
@@ -30,15 +32,12 @@ def submit():
         return _bad_request("'creator_id' is required and must be a non-empty string")
 
     llm = llm_signal(text)
+    stylo = stylometric_signal(text)
+    result = combine(llm["score"], stylo["score"], stylo["word_count"])
+    attribution = result["attribution"]
 
-    # Placeholder scoring until the second signal lands (M4): confidence = LLM score.
-    confidence = llm["score"] if llm["score"] is not None else 0.5
-    if confidence >= 0.80:
-        attribution, variant = "likely_ai", "ai"
-    elif confidence <= 0.35:
-        attribution, variant = "likely_human", "human"
-    else:
-        attribution, variant = "uncertain", "uncertain"
+    # Placeholder label text until M5; the variant is already final.
+    variant = {"likely_ai": "ai", "likely_human": "human", "uncertain": "uncertain"}[attribution]
     label = {"variant": variant, "title": "placeholder", "text": "placeholder label"}
 
     record = {
@@ -46,10 +45,12 @@ def submit():
         "creator_id": creator_id.strip(),
         "text": text,
         "attribution": attribution,
-        "confidence": round(confidence, 3),
+        "confidence": result["confidence"],
         "llm_score": llm["score"],
         "llm_reasoning": llm["reasoning"],
-        "flags": [] if llm["score"] is not None else ["llm_unavailable"],
+        "stylo_score": stylo["score"],
+        "stylo_metrics": stylo["metrics"],
+        "flags": result["flags"],
         "label_variant": variant,
         "status": "classified",
         "created_at": db.now_iso(),
@@ -61,7 +62,11 @@ def submit():
         "creator_id": record["creator_id"],
         "attribution": attribution,
         "confidence": record["confidence"],
-        "signals": {"llm": {"score": llm["score"], "reasoning": llm["reasoning"]}},
+        "signals": {
+            "llm": {"score": llm["score"], "reasoning": llm["reasoning"]},
+            "stylometry": {"score": stylo["score"], "metrics": stylo["metrics"],
+                           "subscores": stylo["subscores"]},
+        },
         "flags": record["flags"],
         "label": label,
         "status": record["status"],
