@@ -3,23 +3,70 @@ import os
 import uuid
 
 from flask import Flask, jsonify, request
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 import db
+from labels import make_label
 from scoring import combine
 from signals.llm import llm_signal
 from signals.stylometry import stylometric_signal
 
 MAX_TEXT_CHARS = 10_000
+APPEAL_REASONING_CHARS = (10, 2_000)
+
+# Rate limits (reasoning in README / planning.md). Keyed by IP, since creator_id is client-supplied.
+SUBMIT_LIMIT = "10 per minute;100 per day"
+APPEAL_LIMIT = "5 per hour"
 
 app = Flask(__name__)
 db.init_db()
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri="memory://",
+)
+
+
+@app.errorhandler(429)
+def rate_limited(e):
+    return jsonify({"error": "rate limit exceeded", "limit": str(e.description)}), 429
 
 
 def _bad_request(message):
     return jsonify({"error": message}), 400
 
 
+def _required_str(body, field):
+    value = body.get(field)
+    return value.strip() if isinstance(value, str) and value.strip() else None
+
+
+def _public_view(sub):
+    """Submission as shown to clients: current label reflects appeal status."""
+    return {
+        "content_id": sub["content_id"],
+        "creator_id": sub["creator_id"],
+        "attribution": sub["attribution"],
+        "confidence": sub["confidence"],
+        "signals": {
+            "llm": {"score": sub["llm_score"], "reasoning": sub["llm_reasoning"]},
+            "stylometry": {"score": sub["stylo_score"], "metrics": sub["stylo_metrics"]},
+        },
+        "flags": sub["flags"],
+        "label": make_label(sub["attribution"], sub["status"]),
+        "status": sub["status"],
+        "appeal_id": sub["appeal_id"],
+        "appeal_reasoning": sub["appeal_reasoning"],
+        "appealed_at": sub["appealed_at"],
+        "timestamp": sub["created_at"],
+    }
+
+
 @app.route("/submit", methods=["POST"])
+@limiter.limit(SUBMIT_LIMIT)
 def submit():
     body = request.get_json(silent=True) or {}
     text = body.get("text")
@@ -35,10 +82,7 @@ def submit():
     stylo = stylometric_signal(text)
     result = combine(llm["score"], stylo["score"], stylo["word_count"])
     attribution = result["attribution"]
-
-    # Placeholder label text until M5; the variant is already final.
-    variant = {"likely_ai": "ai", "likely_human": "human", "uncertain": "uncertain"}[attribution]
-    label = {"variant": variant, "title": "placeholder", "text": "placeholder label"}
+    label = make_label(attribution)
 
     record = {
         "content_id": str(uuid.uuid4()),
@@ -51,7 +95,7 @@ def submit():
         "stylo_score": stylo["score"],
         "stylo_metrics": stylo["metrics"],
         "flags": result["flags"],
-        "label_variant": variant,
+        "label_variant": label["variant"],
         "status": "classified",
         "created_at": db.now_iso(),
     }
@@ -72,6 +116,58 @@ def submit():
         "status": record["status"],
         "timestamp": record["created_at"],
     })
+
+
+@app.route("/appeal", methods=["POST"])
+@limiter.limit(APPEAL_LIMIT)
+def appeal():
+    body = request.get_json(silent=True) or {}
+    content_id = _required_str(body, "content_id")
+    creator_id = _required_str(body, "creator_id")
+    reasoning = _required_str(body, "creator_reasoning")
+    if not content_id:
+        return _bad_request("'content_id' is required")
+    if not creator_id:
+        return _bad_request("'creator_id' is required")
+    lo, hi = APPEAL_REASONING_CHARS
+    if not reasoning or not lo <= len(reasoning) <= hi:
+        return _bad_request(f"'creator_reasoning' is required and must be {lo}-{hi} characters")
+
+    sub = db.get_submission(content_id)
+    if sub is None:
+        return jsonify({"error": "unknown content_id"}), 404
+    if sub["creator_id"] != creator_id:
+        return jsonify({"error": "only the original creator can appeal this content"}), 403
+
+    updated = db.file_appeal(content_id, reasoning)
+    if updated is None:
+        return jsonify({"error": "this content has already been appealed",
+                        "status": sub["status"]}), 409
+
+    return jsonify({
+        "appeal_id": updated["appeal_id"],
+        "content_id": content_id,
+        "status": updated["status"],
+        "original_decision": {"attribution": updated["attribution"],
+                              "confidence": updated["confidence"]},
+        "label": make_label(updated["attribution"], updated["status"]),
+        "message": "Your appeal has been received and will be reviewed by a person.",
+    })
+
+
+@app.route("/content/<content_id>", methods=["GET"])
+def content(content_id):
+    sub = db.get_submission(content_id)
+    if sub is None:
+        return jsonify({"error": "unknown content_id"}), 404
+    return jsonify(_public_view(sub))
+
+
+@app.route("/appeals", methods=["GET"])
+def appeals():
+    """Human reviewer queue: original decision, both signals, and the creator's reasoning."""
+    queue = [{**_public_view(sub), "text": sub["text"]} for sub in db.get_appeal_queue()]
+    return jsonify({"count": len(queue), "appeals": queue})
 
 
 @app.route("/log", methods=["GET"])

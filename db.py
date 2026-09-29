@@ -2,6 +2,7 @@
 import json
 import os
 import sqlite3
+import uuid
 from datetime import datetime, timezone
 
 DB_PATH = os.environ.get("PROVENANCE_DB", os.path.join(os.path.dirname(__file__), "provenance.db"))
@@ -20,6 +21,7 @@ CREATE TABLE IF NOT EXISTS submissions (
     flags            TEXT NOT NULL DEFAULT '[]',
     label_variant    TEXT NOT NULL,
     status           TEXT NOT NULL,
+    appeal_id        TEXT,
     appeal_reasoning TEXT,
     appealed_at      TEXT,
     created_at       TEXT NOT NULL
@@ -37,6 +39,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
     signals_used     TEXT NOT NULL,
     flags            TEXT NOT NULL,
     status           TEXT NOT NULL,
+    appeal_id        TEXT,
     appeal_reasoning TEXT
 );
 """
@@ -72,12 +75,13 @@ def _log_event(conn, event, record):
                     if record.get(key) is not None]
     conn.execute(
         """INSERT INTO audit_log (timestamp, event, content_id, creator_id, attribution, confidence,
-                                  llm_score, stylo_score, signals_used, flags, status, appeal_reasoning)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                  llm_score, stylo_score, signals_used, flags, status, appeal_id,
+                                  appeal_reasoning)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (now_iso(), event, record["content_id"], record["creator_id"], record["attribution"],
          record["confidence"], record.get("llm_score"), record.get("stylo_score"),
          json.dumps(signals_used), json.dumps(record.get("flags", [])), record["status"],
-         record.get("appeal_reasoning")),
+         record.get("appeal_id"), record.get("appeal_reasoning")),
     )
 
 
@@ -107,4 +111,33 @@ def get_submission(content_id):
 def get_log(limit=20):
     with _connect() as conn:
         rows = conn.execute("SELECT * FROM audit_log ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    return [_row_to_dict(r) for r in rows]
+
+
+def file_appeal(content_id, reasoning):
+    """Move a classified submission to under_review and log the appeal with the original decision.
+
+    Returns the updated submission, or None if it was not in `classified` status (already appealed).
+    The conditional UPDATE makes this safe against two concurrent appeals.
+    """
+    with _connect() as conn:
+        cur = conn.execute(
+            """UPDATE submissions SET status = 'under_review', appeal_id = ?, appeal_reasoning = ?,
+                                      appealed_at = ?
+               WHERE content_id = ? AND status = 'classified'""",
+            (str(uuid.uuid4()), reasoning, now_iso(), content_id),
+        )
+        if cur.rowcount == 0:
+            return None
+        row = _row_to_dict(conn.execute(
+            "SELECT * FROM submissions WHERE content_id = ?", (content_id,)).fetchone())
+        _log_event(conn, "appeal_filed", row)
+    return row
+
+
+def get_appeal_queue():
+    """Submissions awaiting human review, oldest appeal first."""
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM submissions WHERE status = 'under_review' ORDER BY appealed_at ASC").fetchall()
     return [_row_to_dict(r) for r in rows]

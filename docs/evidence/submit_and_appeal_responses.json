@@ -1,0 +1,149 @@
+{
+    "clear_ai": {
+        "attribution": "likely_ai",
+        "confidence": 0.817,
+        "content_id": "ffea1220-bb30-4094-813d-e69698687c17",
+        "creator_id": "writer-ai-sample",
+        "flags": [],
+        "label": {
+            "text": "Our analysis found strong, consistent signs that this text was generated with AI tools. Automated detection isn't perfect — the creator can appeal this label, and appealed work is reviewed by a person.",
+            "title": "🤖 Likely AI-generated",
+            "variant": "ai"
+        },
+        "signals": {
+            "llm": {
+                "reasoning": "The passage is highly formal, uses generic filler phrases and balanced but empty structure without personal detail, typical of AI-generated text.",
+                "score": 0.85
+            },
+            "stylometry": {
+                "metrics": {
+                    "avg_word_length": 6.23,
+                    "informality_rate": 0.023,
+                    "sentence_length_cv": 0.379
+                },
+                "score": 0.768,
+                "subscores": {
+                    "burstiness": 0.674,
+                    "informality": 0.709,
+                    "word_length": 1.0
+                }
+            }
+        },
+        "status": "classified",
+        "timestamp": "2026-09-29T21:43:34.892Z"
+    },
+    "clear_human": {
+        "attribution": "likely_human",
+        "confidence": 0.165,
+        "content_id": "1cc12834-b818-45f7-ae09-059b6064c91a",
+        "creator_id": "writer-ramen",
+        "flags": [],
+        "label": {
+            "text": "Our analysis found strong signs that this text was written by a person. No detection system is perfect, but we found no meaningful indicators of AI generation.",
+            "title": "✍️ Likely human-written",
+            "variant": "human"
+        },
+        "signals": {
+            "llm": {
+                "reasoning": "The informal, slang‑filled style with personal anecdotes and exaggerated emphasis (e.g., \"WAY too much sodium\") is more characteristic of a human voice than typical AI output.",
+                "score": 0.2
+            },
+            "stylometry": {
+                "metrics": {
+                    "avg_word_length": 4.27,
+                    "informality_rate": 0.182,
+                    "sentence_length_cv": 0.611
+                },
+                "score": 0.112,
+                "subscores": {
+                    "burstiness": 0.252,
+                    "informality": 0.0,
+                    "word_length": 0.045
+                }
+            }
+        },
+        "status": "classified",
+        "timestamp": "2026-09-29T21:43:36.936Z"
+    },
+    "borderline_edited_ai": {
+        "attribution": "uncertain",
+        "confidence": 0.548,
+        "content_id": "d1d65e24-5e23-47ea-bb66-2b0326a164d7",
+        "creator_id": "writer-remote",
+        "flags": [],
+        "label": {
+            "text": "We couldn't confidently tell whether this text was written by a person or with AI assistance. This is not an accusation — many human writers get this result. Consider the creator's own description of their work.",
+            "title": "❔ Origin unclear",
+            "variant": "uncertain"
+        },
+        "signals": {
+            "llm": {
+                "reasoning": "The text is concise and balanced with a personal voice, but its generic, polished style and lack of specific personal anecdotes make it ambiguous, leaning slightly toward AI.",
+                "score": 0.55
+            },
+            "stylometry": {
+                "metrics": {
+                    "avg_word_length": 5.18,
+                    "informality_rate": 0.051,
+                    "sentence_length_cv": 0.382
+                },
+                "score": 0.546,
+                "subscores": {
+                    "burstiness": 0.669,
+                    "informality": 0.359,
+                    "word_length": 0.612
+                }
+            }
+        },
+        "status": "classified",
+        "timestamp": "2026-09-29T21:43:37.828Z"
+    },
+    "edge_non_native_formal": {
+        "attribution": "uncertain",
+        "confidence": 0.534,
+        "content_id": "93d5f85c-fe60-4a8e-82c1-f2b30e34ffb8",
+        "creator_id": "writer-intl",
+        "flags": [],
+        "label": {
+            "text": "We couldn't confidently tell whether this text was written by a person or with AI assistance. This is not an accusation — many human writers get this result. Consider the creator's own description of their work.",
+            "title": "❔ Origin unclear",
+            "variant": "uncertain"
+        },
+        "signals": {
+            "llm": {
+                "reasoning": "The passage is a generic personal narrative with minor language oddities that could be human, but its lack of specific details and smooth, balanced tone also fits typical AI output.",
+                "score": 0.45
+            },
+            "stylometry": {
+                "metrics": {
+                    "avg_word_length": 4.19,
+                    "informality_rate": 0.0,
+                    "sentence_length_cv": 0.322
+                },
+                "score": 0.661,
+                "subscores": {
+                    "burstiness": 0.778,
+                    "informality": 1.0,
+                    "word_length": 0.0
+                }
+            }
+        },
+        "status": "classified",
+        "timestamp": "2026-09-29T21:43:38.599Z"
+    },
+    "appeal": {
+        "appeal_id": "7b4cba6f-eb66-4326-8d94-70596bb7690c",
+        "content_id": "93d5f85c-fe60-4a8e-82c1-f2b30e34ffb8",
+        "label": {
+            "text": "We couldn't confidently tell whether this text was written by a person or with AI assistance. This is not an accusation — many human writers get this result. Consider the creator's own description of their work. The creator has appealed this result; it is under review.",
+            "title": "❔ Origin unclear",
+            "variant": "uncertain"
+        },
+        "message": "Your appeal has been received and will be reviewed by a person.",
+        "original_decision": {
+            "attribution": "uncertain",
+            "confidence": 0.534
+        },
+        "status": "under_review"
+    }
+}

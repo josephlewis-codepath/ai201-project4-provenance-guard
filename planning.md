@@ -126,7 +126,14 @@ Request:
 ```
 Response `200`:
 ```json
-{ "appeal_id": "uuid4", "content_id": "...", "status": "under_review", "message": "Your appeal has been received and will be reviewed by a person." }
+{
+  "appeal_id": "uuid4",
+  "content_id": "...",
+  "status": "under_review",
+  "original_decision": { "attribution": "likely_ai", "confidence": 0.817 },
+  "label": { "variant": "ai", "title": "...", "text": "... The creator has appealed this result; it is under review." },
+  "message": "Your appeal has been received and will be reviewed by a person."
+}
 ```
 Errors: `400` invalid, `403` creator mismatch, `404` unknown content, `409` already under review, `429` rate limited.
 
@@ -376,3 +383,8 @@ Candidates:
   - *AI threshold 0.80 → 0.75.* Repeated runs showed the LLM varies by about ±0.02 even at temperature 0 (clear_ai scored 0.82–0.86). That put the clear AI sample at 0.799–0.823, right on the 0.80 line, so the same text flip-flopped between labels. A threshold should not sit inside the noise band of the canonical example. The asymmetry is kept: 0.25 above the midpoint vs. 0.15 below.
   - *New LLM floor rule (llm ≥ 0.70 for an AI verdict).* With the lower bar, the formal human paragraph (0.714, driven by stylometry's 0.96) would sit only 0.04 from an AI label. Stylometry's blind spot for formal prose is exactly what the spec predicted, so it may support an AI verdict but not produce one.
   - *Stylometry confirmed its blind spots:* formal human prose 0.96, repetitive poem 0.75, and the non-native writer 0.66 are all AI-leaning. In every case the LLM, the disagreement rule, or the LLM floor kept them at `uncertain`.
+- **M5 — Appeals details.**
+  - `appeal_id` is stored on both `submissions` and the `appeal_filed` audit event, so an appeal can be traced from the response to the log. The original data model only returned the ID without storing it.
+  - The `/appeal` response also echoes `original_decision` and the updated label, so the client can show the creator exactly what they contested.
+  - The status change is a single conditional `UPDATE … WHERE status = 'classified'`, so two simultaneous appeals can't both succeed. The second gets a 409.
+- **M5 — Rate-limit evidence.** With `10 per minute;100 per day`, 12 rapid requests returned ten `200`s then two `429`s (`docs/evidence/rate_limit_test.txt`). The 429 body is JSON (`{"error": "rate limit exceeded", "limit": "10 per 1 minute"}`) instead of Flask-Limiter's default HTML page.
