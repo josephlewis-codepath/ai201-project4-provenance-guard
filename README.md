@@ -404,7 +404,6 @@ A smaller divergence: the course's default model (`llama-4-scout`) has been reti
 
 ## AI usage
 
-> ✏️ *Draft. Rewrite in your own words and add anything you personally directed or overrode.*
 
 I built this with Claude Code as a pair programmer, milestone by milestone, giving it the relevant `planning.md` sections as the spec for each step.
 
