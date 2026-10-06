@@ -416,7 +416,7 @@ I built this with Claude Code as a pair programmer, milestone by milestone, givi
 
 ## Walkthrough video
 
-> 🎥 *Add your video link here.*
+> 🎥 https://youtu.be/yJNrM_EJuEI 
 
 ---
 
